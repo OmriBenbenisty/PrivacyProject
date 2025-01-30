@@ -74,16 +74,46 @@ def train_vae():
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss / len(dataset):.4f}")
 
     # Generate synthetic dataset
-    def generate_synthetic_data(num_samples=10000):
-        with torch.no_grad():
-            labels = torch.randint(0, 10, (num_samples,)).to(device)
-            z = torch.randn(num_samples, vae.latent_dim).to(device)
-            z = z + vae.class_means[labels]
-            synthetic_images = vae.decoder(z).view(-1, 1, 28, 28).cpu()
-        return synthetic_images
 
-    synthetic_data = generate_synthetic_data()
-    torch.save(synthetic_data, "synthetic_mnist.pth")
+
+
+def init():
+    transform = transforms.Compose([transforms.ToTensor()])
+    dataset = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+    data_loader = DataLoader(dataset, batch_size=64, shuffle=True)
+
+    return dataset, data_loader
+
+
+def generate_synthetic_data(vae, num_samples=10000):
+    with torch.no_grad():
+        labels = torch.randint(0, 10, (num_samples,)).to(device)
+        z = torch.randn(num_samples, vae.latent_dim).to(device)
+        z = z + vae.class_means[labels]
+        synthetic_images = vae.decoder(z).view(-1, 1, 28, 28).cpu()
+    return synthetic_images
+
+
 
 if __name__ == '__main__':
-    train_classifier()
+    dataset, dataloader = init()
+
+    private_classifier_path = "Trained/PrivateClassifier.pth"
+    vae_path = "Trained/VAE.pth"
+    classifier_path = "Trained/Classifier.pth"
+
+    # Train the classifier with private guarantee
+    train_classifier(dataset, dataloader, private=True)
+
+
+    # Train the VAE with private guarantee and the classifier regularlly
+    train_vae(dataset, dataloader, private=True)
+
+
+
+
+    vae = torch.load(vae_path)
+    private_dataset = generate_synthetic_data(vae, num_samples=10000)
+    torch.save(private_dataset, "synthetic_mnist.pth")
+
+    train_classifier(dataset, dataloader, private=False)
