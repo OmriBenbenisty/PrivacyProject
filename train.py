@@ -1,4 +1,3 @@
-from idlelib.editor import darwin
 
 import torch
 import torch.nn as nn
@@ -16,20 +15,22 @@ from Classifier import Classifier
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Working on device: {device}")
 LEARNING_RATE = 1e-3
 EPOCHS = 10
 BATCH_SIZE = 64
-wandb.init(project="mnist-classification",
+wandb.init(project="PrivacyVAE",
            config={
                "learning_rate": LEARNING_RATE,
                "dataset": "MNIST",
                "epochs": EPOCHS,
+               "batch_size": BATCH_SIZE
            }
            )
 
 
 def train_classifier(data_loader, private=False):
-    classifier = Classifier()
+    classifier = Classifier().to(device)
     optimizer = optim.Adam(classifier.parameters(), lr=LEARNING_RATE)
     criterion = nn.CrossEntropyLoss()
 
@@ -49,7 +50,7 @@ def train_classifier(data_loader, private=False):
         correct = 0
         total = 0
         for images, labels in data_loader:
-            images, labels = images.to(torch.device('cpu')), labels.to(torch.device('cpu'))
+            images, labels = images.to(torch.device(device)), labels.to(torch.device(device))
             optimizer.zero_grad()
             outputs = classifier(images)
             loss = criterion(outputs, labels)
