@@ -36,13 +36,15 @@ class VAE(nn.Module):
         eps = torch.randn_like(std)
         return mu + eps * std
 
-    def forward(self, x, labels):
+    def forward(self, x, labels=None):
         x_encoded = self.encoder(x)
         mu, logvar = x_encoded[:, :self.latent_dim], x_encoded[:, self.latent_dim:]
-        class_mu = self.class_means[labels]
-        class_logvar = self.class_logvars[labels]
-        mu = mu + class_mu
-        logvar = logvar + class_logvar
+        if labels is not None:
+            class_mu = self.class_means[labels]
+            class_logvar = self.class_logvars[labels]
+            mu = mu + class_mu
+            logvar = logvar + class_logvar
+
         z = self.reparameterize(mu, logvar)
         x_reconstructed = self.decoder(z)
         return x_reconstructed, mu, logvar, z

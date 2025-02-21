@@ -45,6 +45,8 @@ def train_classifier(train_loader, test_loader, private=False):
             max_grad_norm=1.0
         )
 
+    print(f"Training classifier private={private}.....")
+
     classifier.train()
     for epoch in range(EPOCHS):
         classifier.train()
@@ -89,6 +91,8 @@ def train_classifier(train_loader, test_loader, private=False):
 
     torch.save(classifier, f"./Trained/mnist_classifier_private_{private}.pth")
 
+    print(f"Finished training classifier, private={private}")
+
 
 
 def train_vae(train_loader, test_loader, private=True):
@@ -109,6 +113,7 @@ def train_vae(train_loader, test_loader, private=True):
         )
 
     # Training loop
+    print("Training VAE.....")
     vae.train()
     for epoch in range(EPOCHS):
         vae.train()
@@ -138,24 +143,34 @@ def train_vae(train_loader, test_loader, private=True):
         print(f"Test Loss: {test_loss / len(test_loader):.4f}")
 
     torch.save(vae, f"./Trained/mnist_vae_private_{private}.pth")
+
+    print("Finished training VAE")
     # Generate synthetic dataset
 
 
 
 def init():
-    transform = transforms.Compose([transforms.ToTensor()])
-    dataset = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
-    data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-
-    # Split dataset into training and testing sets
-    train_size = int(0.8 * len(dataset))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    # transform = transforms.Compose([transforms.ToTensor()])
+    train_dataset = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
 
     return train_loader, test_loader
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
+
 
 def generate_synthetic_data(vae, num_samples=10000):
     with torch.no_grad():
