@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import torchvision
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from torch.utils.data import DataLoader, random_split
@@ -12,20 +13,20 @@ import wandb
 
 from VAE import VAE, vae_loss
 from Classifier import Classifier
-
+from utils import imshow
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Working on device: {device}")
 LEARNING_RATE = 1e-3
 EPOCHS = 10
-BATCH_SIZE = 64
+BATCH_SIZE = 4
 wandb.init(project="PrivacyVAE",
            config={
                "learning_rate": LEARNING_RATE,
                "dataset": "MNIST",
                "epochs": EPOCHS,
                "batch_size": BATCH_SIZE,
-               "name": "VAE_PRIVATE"
+               "name": "VAE_NON_PRIVATE"
            }
            )
 
@@ -53,7 +54,8 @@ def train_classifier(train_loader, test_loader, private=False):
         epoch_loss = 0
         correct = 0
         total = 0
-        for images, labels in train_loader:
+        for i, data in enumerate(train_loader):
+            images, labels = data
             images, labels = images.to(torch.device(device)), labels.to(torch.device(device))
             optimizer.zero_grad()
             outputs = classifier(images)
@@ -63,6 +65,7 @@ def train_classifier(train_loader, test_loader, private=False):
             epoch_loss += loss.item()
             correct += (outputs.argmax(dim=1) == labels).sum().item()
             total += labels.size(0)
+
         accuracy = correct / total
         wandb.log({"epoch": epoch + 1, "loss": epoch_loss / len(train_loader), "accuracy": accuracy})
         print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {epoch_loss/len(train_loader):.4f}, Accuracy: {accuracy:.4f}")
@@ -96,9 +99,6 @@ def train_classifier(train_loader, test_loader, private=False):
 
 
 def train_vae(train_loader, test_loader, private=True):
-    # Load dataset
-    transform = transforms.Compose([transforms.ToTensor()])
-
     # Initialize model, optimizer, and privacy engine
     vae = VAE().to(device)
     optimizer = optim.Adam(vae.parameters(), lr=LEARNING_RATE)
@@ -109,7 +109,8 @@ def train_vae(train_loader, test_loader, private=True):
             optimizer=optimizer,
             data_loader=train_loader,
             noise_multiplier=1.1,
-            max_grad_norm=1.0
+            max_grad_norm=1.0,
+            # functorch_grad_sample_mode="hooks"
         )
 
     # Training loop
@@ -118,14 +119,21 @@ def train_vae(train_loader, test_loader, private=True):
     for epoch in range(EPOCHS):
         vae.train()
         epoch_loss = 0
-        for images, labels in train_loader:
-            images, labels = images.view(-1, 28 * 28).to(device), labels.to(device)
+        for i, data in enumerate(train_loader):
+            images, labels = data
+            images, labels = images.view(-1, 1, 28, 28).to(device), labels.to(device)
             optimizer.zero_grad()
-            recon_images, mu, logvar, _ = vae(images, labels)
+            recon_images, mu, logvar, _ = torch.vmap(vae, randomness='different')(images, labels)
             loss = vae_loss(recon_images, images, mu, logvar)
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
+
+            if i % 5000 == 4999:
+                imshow(torchvision.utils.make_grid(images.to('cpu')))
+                print("inputs")
+                imshow(torchvision.utils.make_grid(recon_images.to('cpu')))
+                print("outputs")
 
         wandb.log({"epoch": epoch + 1, "loss": epoch_loss / len(train_loader)})
         print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {epoch_loss/len(train_loader):.4f}")
@@ -135,8 +143,8 @@ def train_vae(train_loader, test_loader, private=True):
         vae.eval()
         with torch.no_grad():
             for images, labels in test_loader:
-                images, labels = images.view(-1, 28 * 28).to(device), labels.to(device)
-                recon_images, mu, logvar, _ = vae(images, labels)
+                images, labels = images.view(-1, 1, 28, 28).to(device), labels.to(device)
+                recon_images, mu, logvar, _ = torch.vmap(vae, randomness='different')(images, labels)
                 loss = vae_loss(recon_images, images, mu, logvar)
                 test_loss += loss.item()
         wandb.log({"test_loss": test_loss / len(test_loader)})
@@ -159,7 +167,7 @@ def init():
     test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     return train_loader, test_loader
 
@@ -193,7 +201,7 @@ def run():
 
 
     # Train the VAE with private guarantee and the classifier regularlly
-    train_vae(train_loader, test_loader, private=True)
+    train_vae(train_loader, test_loader, private=False)
 
 
 
