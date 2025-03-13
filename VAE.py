@@ -29,6 +29,7 @@ class VAE(nn.Module):
         )
         self.latent_dim = latent_dim
         # self.class_means = nn.Parameter(torch.randn(num_classes, latent_dim))
+        # self.class_means = torch.randn(num_classes, latent_dim).to(device) + torch.arange(num_classes).unsqueeze(1).to(device)
         self.class_means = torch.randn(num_classes, latent_dim).to(device)
         # self.class_means = torch.randn(num_classes, latent_dim).cpu().numpy()
         # self.class_logvars = nn.Parameter(torch.randn(num_classes, latent_dim))
@@ -47,7 +48,7 @@ class VAE(nn.Module):
     def forward(self, x, labels=None):
         x_encoded = self.encoder(x)
         mu, logvar = x_encoded[:, :self.latent_dim], x_encoded[:, self.latent_dim:]
-        labels = None
+        # labels = None
         if labels is not None:
             class_mu = torch.index_select(self.class_means, 0, labels)
             # class_logvar = self.class_logvars[labels]
@@ -58,8 +59,9 @@ class VAE(nn.Module):
         z = self.reparameterize(mu, logvar)
         x_reconstructed = self.decoder(z)
         x_reconstructed = x_reconstructed.reshape(-1, 28, 28)
-        # if x_reconstructed.ndim == 3:
-        #     x_reconstructed = x_reconstructed.unsqueeze(1)
+        # x_reconstructed = x_reconstructed.reshape(28, 28)
+        if x_reconstructed.ndim == 3:
+            x_reconstructed = x_reconstructed.unsqueeze(1)
 
         return x_reconstructed, mu, logvar, z
 
