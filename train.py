@@ -28,7 +28,7 @@ EPSILON = 50
 DELTA = 1e-5
 MAX_GRAD_NORM = 1.2
 NOISE_MULTIPLIER = 0.1
-LOG = True
+LOG = False
 
 if LOG:
     wandb.init(project="PrivacyVAE",
@@ -290,56 +290,56 @@ def run():
     train_loader, test_loader = init()
 
     # train the classifier non-private
-    # train_classifier(train_loader, test_loader,
-    #                  f"mnist_classifier_non_private", private=False)
+    train_classifier(train_loader, test_loader,
+                     f"mnist_classifier_non_private", private=False)
     #
 
-    # private_classifier_path = "Trained/PrivateClassifier.pth"
-    # private_vae_path = "Trained/mnist_vae_private_True_state_dict.pth"
-    # classifier_path = "Trained/Classifier.pth"
+    private_classifier_path = "Trained/PrivateClassifier.pth"
+    private_vae_path = "Trained/mnist_vae_private_True_state_dict.pth"
+    classifier_path = "Trained/Classifier.pth"
 
     # Train the classifier with private guarantee
-    # train_classifier(train_loader,
-    #                  test_loader,
-    #                  f"mnist_classifier_PRIVATE_noise_{NOISE_MULTIPLIER}",
-    #                  private=True)
+    train_classifier(train_loader,
+                     test_loader,
+                     f"mnist_classifier_PRIVATE_noise_{NOISE_MULTIPLIER}",
+                     private=True)
 
 
     # Private VAE and regular classifier
     # Train the VAE with private guarantee and the classifier regularlly
-    # train_vae(train_loader, test_loader, private=PRIVATE)
+    train_vae(train_loader, test_loader, private=True)
     # return
 
 
 
-    # noise_levels = [NOISE_MULTIPLIER]
-    # for noise in noise_levels:
-    noise = NOISE_MULTIPLIER
-    print("working with noise: ", noise)
-    save_path = f"mnist_classifier_private_dataset_noise_{noise}_vae_no_means"
-    # private_vae_path = f"Trained/mnist_vae_private_True_noise_{noise}_state_dict_2.pth"
-    private_vae_path = f"Trained/mnist_vae_private_True_noise_{noise}_no_means_state_dict_2.pth"
-    vae = VAE().to(device)
-    print("loading vae....")
-    state_dict = torch.load(private_vae_path, weights_only=False)
-    new_state_dict = {k.replace("_module.", ""): v for k, v in state_dict.items()}
-    vae.load_state_dict(new_state_dict, strict=True)
-    # vae = torch.load(private_vae_path, weights_only=False)
-    vae.eval()
-    print("generating synthetic data....")
-    # private_dataset, private_labels = generate_synthetic_data(vae, num_samples=10000)
-    private_dataset, private_labels = generate_synthetic_data_with_mean_calculation(vae, train_loader)
-    plot_synthetic_data(private_dataset, private_labels, images_per_class=5)
-    # return
-    # plot_synthetic_data(private_dataset, private_labels, images_per_class=2)
-    # imshow(torchvision.utils.make_grid(private_dataset[:20].to('cpu')),
-    #        title="generated private images")
-    torch.save(private_dataset, f"synthetic_mnist_noise_{noise}.pth")
-    torch.save(private_labels, f"synthetic_mnist_labels_noise_{noise}.pth")
+    noise_levels = [0.03, 0.06, 0.1]
+    for noise in noise_levels:
+    #     noise = NOISE_MULTIPLIER
+        print("working with noise: ", noise)
+        save_path = f"mnist_classifier_private_dataset_noise_{noise}_vae_no_means"
+        # private_vae_path = f"Trained/mnist_vae_private_True_noise_{noise}_state_dict_2.pth"
+        private_vae_path = f"Trained/mnist_vae_private_True_noise_{noise}_no_means_state_dict_2.pth"
+        vae = VAE().to(device)
+        print("loading vae....")
+        state_dict = torch.load(private_vae_path, weights_only=False)
+        new_state_dict = {k.replace("_module.", ""): v for k, v in state_dict.items()}
+        vae.load_state_dict(new_state_dict, strict=True)
+        # vae = torch.load(private_vae_path, weights_only=False)
+        vae.eval()
+        print("generating synthetic data....")
+        # private_dataset, private_labels = generate_synthetic_data(vae, num_samples=10000)
+        private_dataset, private_labels = generate_synthetic_data_with_mean_calculation(vae, train_loader)
+        plot_synthetic_data(private_dataset, private_labels, images_per_class=5)
+        # return
+        # plot_synthetic_data(private_dataset, private_labels, images_per_class=2)
+        # imshow(torchvision.utils.make_grid(private_dataset[:20].to('cpu')),
+        #        title="generated private images")
+        torch.save(private_dataset, f"synthetic_mnist_noise_{noise}.pth")
+        torch.save(private_labels, f"synthetic_mnist_labels_noise_{noise}.pth")
 
 
-    private_loader = DataLoader(list(zip(private_dataset, private_labels)), batch_size=BATCH_SIZE, shuffle=True)
-    train_classifier(private_loader,test_loader,save_path, private=False)
+        private_loader = DataLoader(list(zip(private_dataset, private_labels)), batch_size=BATCH_SIZE, shuffle=True)
+        train_classifier(private_loader,test_loader,save_path, private=False)
 
 
     # load the synthetic and plot 20 images 2 from each class
