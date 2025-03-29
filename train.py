@@ -22,12 +22,12 @@ print(f"Working on device: {device}")
 LEARNING_RATE = 1e-3
 EPOCHS = 10
 BATCH_SIZE = 16
-TYPE = "Classifier VAE no mean"
+TYPE = "Classifier on private data"
 PRIVATE = True
 EPSILON = 50
 DELTA = 1e-5
 MAX_GRAD_NORM = 1.2
-NOISE_MULTIPLIER = 0.03
+NOISE_MULTIPLIER = 0.1
 LOG = True
 
 if LOG:
@@ -67,7 +67,7 @@ def train_classifier(train_loader, test_loader, save_path, private=False):
 
     print(f"Training classifier private={private}.....")
 
-    classifier.train()
+    # classifier.train()
     for epoch in range(EPOCHS):
         classifier.train()
         epoch_loss = 0
@@ -75,13 +75,14 @@ def train_classifier(train_loader, test_loader, save_path, private=False):
         total = 0
         for i, data in enumerate(train_loader):
             images, labels = data
-            images, labels = images.to(torch.device(device)), labels.to(torch.device(device))
+            images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = classifier(images)
             loss = criterion(outputs, labels)
-            loss.backward()
+            loss.backward(retain_graph=True)
             optimizer.step()
             epoch_loss += loss.item()
+
             correct += (outputs.argmax(dim=1) == labels).sum().item()
             total += labels.size(0)
             if math.isnan(epoch_loss):
@@ -287,6 +288,11 @@ def plot_synthetic_data(
 
 def run():
     train_loader, test_loader = init()
+
+    # train the classifier non-private
+    # train_classifier(train_loader, test_loader,
+    #                  f"mnist_classifier_non_private", private=False)
+    #
 
     # private_classifier_path = "Trained/PrivateClassifier.pth"
     # private_vae_path = "Trained/mnist_vae_private_True_state_dict.pth"
