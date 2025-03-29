@@ -8,10 +8,8 @@ from torch.utils.data import DataLoader
 from opacus import PrivacyEngine
 import numpy as np
 
-# Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Define the VAE model
 class VAE(nn.Module):
     def __init__(self, latent_dim=20, num_classes=10):
         super(VAE, self).__init__()
@@ -30,10 +28,10 @@ class VAE(nn.Module):
         self.latent_dim = latent_dim
         # self.class_means = nn.Parameter(torch.randn(num_classes, latent_dim))
         # self.class_means = torch.randn(num_classes, latent_dim).to(device) + torch.arange(num_classes).unsqueeze(1).to(device)
-        self.class_means = torch.randn(num_classes, latent_dim).to(device)
+        # self.class_means = torch.randn(num_classes, latent_dim).to(device)
         # self.class_means = torch.randn(num_classes, latent_dim).cpu().numpy()
         # self.class_logvars = nn.Parameter(torch.randn(num_classes, latent_dim))
-        self.class_logvars = torch.randn(num_classes, latent_dim).to(device)
+        # self.class_logvars = torch.randn(num_classes, latent_dim).to(device)
 
     @staticmethod
     def reparameterize(mu, logvar):
@@ -50,11 +48,13 @@ class VAE(nn.Module):
         mu, logvar = x_encoded[:, :self.latent_dim], x_encoded[:, self.latent_dim:]
         # labels = None
         if labels is not None:
-            class_mu = torch.index_select(self.class_means, 0, labels)
-            # class_logvar = self.class_logvars[labels]
-            class_logvar = torch.index_select(self.class_logvars, 0, labels)
-            mu = mu + class_mu
-            logvar = logvar + class_logvar
+            pass
+
+            # class_mu = torch.index_select(self.class_means, 0, labels)
+            # # class_logvar = self.class_logvars[labels]
+            # class_logvar = torch.index_select(self.class_logvars, 0, labels)
+            # mu = mu + class_mu
+            # logvar = logvar + class_logvar
 
         z = self.reparameterize(mu, logvar)
         x_reconstructed = self.decoder(z)
