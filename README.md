@@ -1,77 +1,108 @@
 # Differential Privacy in Machine Learning with VAEs
 
-This project explores two approaches to integrating differential privacy (DP) into machine learning workflows: training a classifier with differential privacy guarantees and generating a differentially private synthetic dataset to train a classifier. The project utilizes Variational Autoencoders (VAEs) and the Opacus library to ensure privacy during the training process.
+This project explores two approaches to integrating **Differential Privacy (DP)** into machine learning workflows:
 
-## Table of Contents
+1. **Training a classifier with differential privacy guarantees.**
+2. **Generating a differentially private synthetic dataset** to train a classifier.
 
-- Introduction
-- Installation
-- Usage
-- Project Structure
-- Results
-- License
+The project leverages **Variational Autoencoders (VAEs)** and the **Opacus library** to ensure privacy during training.
 
-## Introduction
+---
 
-In this study, we explore two approaches to integrating differential privacy into machine learning workflows:
-1. Training a classifier with differential privacy guarantees.
-2. Generating a differentially private synthetic dataset to train a classifier.
+## 📜 Table of Contents
 
-We use Variational Autoencoders (VAEs) and the Opacus library to ensure privacy during the training process. The first approach involves directly training a classifier with differential privacy, ensuring that the model parameters do not leak sensitive information. The second approach involves training a VAE with differential privacy to generate a synthetic dataset that mimics the original data distribution, which is then used to train a classifier without privacy constraints.
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Results](#results)
+- [License](#license)
 
-## Installation
+---
+
+## 📖 Introduction
+
+In this study, we explore two approaches to integrating **differential privacy** into machine learning workflows:
+
+1. **Training a classifier with differential privacy:** Ensures that model parameters do not leak sensitive information.
+2. **Generating a differentially private synthetic dataset:** A VAE is trained with DP to generate a dataset that mimics the original distribution, allowing a classifier to be trained without privacy constraints.
+
+We implement these approaches using:
+- **[Variational Autoencoders (VAEs)](https://arxiv.org/abs/1312.6114)** for generative modeling.
+- **[Opacus](https://opacus.ai/)** for privacy-preserving deep learning.
+
+---
+
+## ⚙️ Installation
 
 To install the required dependencies, run:
 
+```bash
 pip install -r requirements.txt
+```
 
-## Usage
+---
 
-To run the project, you can run the train.py file of follow these steps:
+## 🚀 Usage
 
-1. Initialize the datasets and data loaders:
+To run the project, execute `train.py` or follow these steps:
 
-    train_loader, test_loader = init()
+### 1️⃣ Initialize Datasets and Data Loaders
+```python
+train_loader, test_loader = init()
+```
 
-2. Train the VAE with differential privacy:
+### 2️⃣ Train the VAE with Differential Privacy
+```python
+train_vae(train_loader, test_loader, private=True)
+```
 
-    train_vae(train_loader, test_loader, private=True)
+### 3️⃣ Generate Synthetic Data using the Trained VAE
+```python
+private_dataset, private_labels = generate_synthetic_data_with_mean_calculation(vae, train_loader)
+```
 
-3. Generate synthetic data using the trained VAE:
+### 4️⃣ Train the Classifier on the Synthetic Dataset
+```python
+train_classifier(private_loader, test_loader, save_path, private=False)
+```
 
-    private_dataset, private_labels = generate_synthetic_data_with_mean_calculation(vae, train_loader)
+### 5️⃣ Evaluate Results and Visualize Synthetic Data
+```python
+plot_synthetic_data(private_dataset, private_labels, images_per_class=5)
+```
 
-4. Train the classifier on the synthetic dataset:
+---
 
-    train_classifier(private_loader, test_loader, save_path, private=False)
+## 📁 Project Structure
 
-5. Evaluate the results and visualize the synthetic data:
-
-    plot_synthetic_data(private_dataset, private_labels, images_per_class=5)
-
-## Project Structure
-
+```
 .
-├── data/                   # Directory for storing datasets
+├── data/                  # Directory for storing datasets
 ├── Plots/                 # Directory for storing images
-├── Trained/                # Directory for storing trained models
-├── VAE.py                  # VAE model definition and loss function
-├── train.py                # Training and evaluation scripts
-├── requirements.txt        # List of dependencies
-└── README.md               # Project documentation
+├── Trained/               # Directory for storing trained models
+├── VAE.py                 # VAE model definition and loss function
+├── train.py               # Training and evaluation scripts
+├── requirements.txt       # List of dependencies
+└── README.md              # Project documentation
+```
 
-## Results
+---
 
-The results of the experiments include the performance of the classifiers and the quality of the synthetic data generated by the VAE. The following metrics are used to evaluate the models:
+## 📊 Results
 
-- Accuracy
-- Loss
-- Privacy Budget
-- Synthetic Data Quality
+The results include **classifier performance** and the **quality of the synthetic data** generated by the VAE. Metrics used for evaluation:
 
-Example images from the synthetic dataset and loss graphs are included in the Plots/ directory.
+- **Accuracy** 🏆
+- **Loss** 📉
+- **Privacy Budget** 🔒
+- **Synthetic Data Quality** 🎨
 
+Example images from the **synthetic dataset** and **loss graphs** can be found in the [`Plots/`](./Plots/) directory.
 
-## License
+---
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+## 📜 License
+
+This project is licensed under the **MIT License**. See the [`LICENSE`](./LICENSE) file for details.
+
